@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  name          String
+  email         String   @unique
+  password      String
+  telegramId    String?  @unique
+  botToken      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  groups        Group[]
+  images        Image[]
+  sendJobs      SendJob[]
+}
+
+model Group {
+  id            String   @id @default(uuid())
+  userId        String
+  name          String
+  chatId        String
+  type          String   @default("group")
+  isActive      Boolean  @default(true)
+  memberCount   Int?
+  lastTestedAt  DateTime?
+  testStatus    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id])
+  sendRecords   SendRecord[]
+}
+
+model Image {
+  id            String   @id @default(uuid())
+  userId        String
+  filename      String
+  originalName  String
+  filePath      String
+  thumbnailPath String
+  fileSize      Int
+  mimeType      String
+  width         Int?
+  height        Int?
+  caption       String?
+  status        String   @default("pending")
+  createdAt     DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id])
+  sendRecords   SendRecord[]
+}
+
+model SendJob {
+  id              String        @id @default(uuid())
+  userId          String
+  totalSends      Int
+  completedSends  Int           @default(0)
+  failedSends     Int           @default(0)
+  status          String        @default("pending")
+  caption         String?
+  delayMs         Int           @default(3000)
+  sendAsAlbum     Boolean       @default(true)
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  user            User          @relation(fields: [userId], references: [id])
+  sendRecords     SendRecord[]
+}
+
+model SendRecord {
+  id            String     @id @default(uuid())
+  jobId         String
+  imageId       String
+  groupId       String
+  status        String     @default("pending")
+  telegramMsgId Int?
+  errorMessage  String?
+  retryCount    Int        @default(0)
+  sentAt        DateTime?
+  createdAt     DateTime   @default(now())
+  job           SendJob   @relation(fields: [jobId], references: [id])
+  image         Image     @relation(fields: [imageId], references: [id])
+  group         Group     @relation(fields: [groupId], references: [id])
+}
