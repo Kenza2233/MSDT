@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { after } from "next/server";
 import prisma from "@/lib/prisma";
 import { APP_USER_ID } from "@/lib/config";
 import { processSendJob } from "@/lib/telegram-sender";
@@ -39,8 +40,10 @@ export async function POST(req: Request) {
 
     await prisma.sendRecord.createMany({ data: records });
 
-    // Trigger background process
-    processSendJob(job.id);
+    // Trigger background process using Next.js 15 'after' for reliability in serverless
+    after(() => {
+      processSendJob(job.id);
+    });
 
     return NextResponse.json(job);
   } catch (error) {

@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Search,
@@ -29,7 +31,6 @@ import { cn, formatFileSize, formatDate } from "@/lib/utils";
 import { toast } from "sonner";
 import Link from "next/link";
 
-export const dynamic = 'force-dynamic';
 
 export default function GalleryPage() {
     const [images, setImages] = useState<any[]>([]);
@@ -42,8 +43,31 @@ export default function GalleryPage() {
     const [hasMore, setHasMore] = useState(true);
 
     const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+    const [isEditingCaption, setIsEditingCaption] = useState(false);
+    const [captionText, setCaptionText] = useState("");
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const observer = useRef<IntersectionObserver | null>(null);
+
+    const updateCaption = async () => {
+        if (lightboxIndex === null) return;
+        const img = images[lightboxIndex];
+        try {
+            const res = await fetch(`/api/images/${img.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ caption: captionText })
+            });
+            if (res.ok) {
+                toast.success("Caption updated");
+                const updatedImages = [...images];
+                updatedImages[lightboxIndex] = { ...img, caption: captionText };
+                setImages(updatedImages);
+                setIsEditingCaption(false);
+            }
+        } catch (err) {
+            toast.error("Failed to update caption");
+        }
+    };
 
     const fetchImages = useCallback(async (pageNum: number, isNew: boolean = false) => {
         if (pageNum > 1) setLoadingMore(true);
@@ -272,6 +296,33 @@ export default function GalleryPage() {
                     </div>
 
                     <div className="w-full bg-slate-900/50 p-6 flex flex-col items-center gap-4">
+                        {/* Caption Area */}
+                        <div className="w-full max-w-2xl px-4 text-center">
+                            {isEditingCaption ? (
+                                <div className="flex gap-2">
+                                    <Input
+                                        value={captionText}
+                                        onChange={(e) => setCaptionText(e.target.value)}
+                                        className="bg-white/10 text-white border-white/20 h-10"
+                                        autoFocus
+                                        onKeyDown={(e) => e.key === 'Enter' && updateCaption()}
+                                    />
+                                    <Button onClick={updateCaption} className="bg-blue-600 h-10 px-4">Save</Button>
+                                    <Button variant="ghost" onClick={() => setIsEditingCaption(false)} className="text-white">Cancel</Button>
+                                </div>
+                            ) : (
+                                <div
+                                    className="text-blue-100 font-medium italic cursor-pointer hover:text-white transition-colors"
+                                    onClick={() => {
+                                        setCaptionText(images[lightboxIndex].caption || "");
+                                        setIsEditingCaption(true);
+                                    }}
+                                >
+                                    {images[lightboxIndex].caption || "Add a caption..."}
+                                </div>
+                            )}
+                        </div>
+
                         {/* Thumbnail Strip */}
                         <div className="flex gap-2 overflow-x-auto max-w-full p-2 scrollbar-thin">
                             {images.map((img, idx) => (

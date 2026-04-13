@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useEffect, useState, useMemo, useRef } from "react";
 import {
   Send,
@@ -36,7 +38,6 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 
-export const dynamic = 'force-dynamic';
 
 export default function SendPage() {
     const [images, setImages] = useState<any[]>([]);

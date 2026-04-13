@@ -2,6 +2,11 @@ import TelegramBot from "node-telegram-bot-api";
 import prisma from "./prisma";
 import fs from "fs";
 import path from "path";
+import { Prisma } from "@prisma/client";
+
+type RecordWithRelations = Prisma.SendRecordGetPayload<{
+  include: { image: true; group: true }
+}>;
 
 export async function processSendJob(jobId: number) {
   const job = await prisma.sendJob.findUnique({
@@ -33,9 +38,9 @@ export async function processSendJob(jobId: number) {
     const records = job.records;
 
     if (job.sendAsAlbum) {
-      const groupedByGroup = records.reduce((acc: any, record) => {
+      const groupedByGroup = records.reduce((acc: Record<number, RecordWithRelations[]>, record) => {
         if (!acc[record.groupId]) acc[record.groupId] = [];
-        acc[record.groupId].push(record);
+        acc[record.groupId].push(record as RecordWithRelations);
         return acc;
       }, {});
 
@@ -51,7 +56,7 @@ export async function processSendJob(jobId: number) {
         for (let i = 0; i < groupRecords.length; i += batchSize) {
           const batch = groupRecords.slice(i, i + batchSize);
 
-          const media: any[] = batch.map((r: any, index: number) => {
+          const media: TelegramBot.InputMediaPhoto[] = batch.map((r, index) => {
             const filePath = path.join(process.cwd(), "public", r.image.filePath);
             let itemCaption = undefined;
             if (index === 0) {
@@ -60,7 +65,7 @@ export async function processSendJob(jobId: number) {
 
             return {
               type: "photo",
-              media: fs.createReadStream(filePath),
+              media: fs.createReadStream(filePath) as any, // node-telegram-bot-api types can be picky with streams
               caption: itemCaption,
               parse_mode: 'HTML'
             };

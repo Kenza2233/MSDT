@@ -29,3 +29,20 @@ export async function DELETE(req: Request, props: { params: Promise<{ id: string
     return NextResponse.json({ message: "Error deleting image" }, { status: 500 });
   }
 }
+
+export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
+  try {
+    const params = await props.params;
+    const { caption } = await req.json();
+    const id = parseInt(params.id);
+
+    const image = await prisma.image.update({
+      where: { id, userId: APP_USER_ID },
+      data: { caption },
+    });
+
+    return NextResponse.json(image);
+  } catch (error) {
+    return NextResponse.json({ message: "Error updating caption" }, { status: 500 });
+  }
+}

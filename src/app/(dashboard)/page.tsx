@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -17,7 +19,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn, formatDate, timeAgo } from "@/lib/utils";
 
-export const dynamic = 'force-dynamic';
 
 export default function DashboardPage() {
   const [stats, setStats] = useState({

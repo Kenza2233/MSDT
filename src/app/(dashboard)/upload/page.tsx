@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useState, useRef } from "react";
 import {
   Upload,
@@ -18,7 +20,6 @@ import { cn, formatFileSize } from "@/lib/utils";
 import { toast } from "sonner";
 import Link from "next/link";
 
-export const dynamic = 'force-dynamic';
 
 interface FileWithStatus {
     file: File;

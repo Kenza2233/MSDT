@@ -86,7 +86,7 @@ model SendRecord {
   sentAt        DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  job           SendJob  @relation(fields: [jobId], references: [id])
-  group         Group    @relation(fields: [groupId], references: [id])
-  image         Image    @relation(fields: [imageId], references: [id])
+  job           SendJob  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  group         Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  image         Image    @relation(fields: [imageId], references: [id], onDelete: Cascade)
 }

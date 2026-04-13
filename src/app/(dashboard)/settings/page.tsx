@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useEffect, useState } from "react";
 import {
   Bot,
@@ -26,7 +28,6 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-export const dynamic = 'force-dynamic';
 
 export default function SettingsPage() {
     const [botToken, setBotToken] = useState("");

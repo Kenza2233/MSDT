@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { APP_USER_ID } from "@/lib/config";
+import { Prisma } from "@prisma/client";
 
 export async function GET(req: Request) {
   try {
@@ -12,16 +13,16 @@ export async function GET(req: Request) {
     const take = parseInt(searchParams.get("take") || "20");
     const skip = (page - 1) * take;
 
-    const where: any = {
+    const where: Prisma.ImageWhereInput = {
       userId: APP_USER_ID,
       fileName: { contains: search, mode: "insensitive" },
     };
 
     if (status !== "all") {
-      where.status = status;
+      where.status = status as string;
     }
 
-    const orderBy: any = {};
+    const orderBy: Prisma.ImageOrderByWithRelationInput = {};
     if (sort === "newest") orderBy.createdAt = "desc";
     else if (sort === "oldest") orderBy.createdAt = "asc";
     else if (sort === "largest") orderBy.fileSize = "desc";

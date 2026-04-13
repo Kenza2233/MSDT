@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useEffect, useState, useMemo } from "react";
 import {
   History,
@@ -39,11 +41,21 @@ import {
 } from "@/components/ui/select";
 import { cn, formatDate } from "@/lib/utils";
 import { toast } from "sonner";
+import { Prisma } from "@prisma/client";
 
-export const dynamic = 'force-dynamic';
+type JobWithRelations = Prisma.SendJobGetPayload<{
+    include: {
+        records: {
+            include: {
+                image: true;
+                group: true;
+            };
+        };
+    };
+}>;
 
 export default function HistoryPage() {
-    const [jobs, setJobs] = useState<any[]>([]);
+    const [jobs, setJobs] = useState<JobWithRelations[]>([]);
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({ totalSent: 0, sentToday: 0, successRate: 100 });
 
@@ -51,7 +63,7 @@ export default function HistoryPage() {
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
 
-    const [selectedJob, setSelectedJob] = useState<any>(null);
+    const [selectedJob, setSelectedJob] = useState<JobWithRelations | null>(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
     const fetchHistory = async () => {
@@ -274,7 +286,7 @@ export default function HistoryPage() {
                     <div className="p-10 max-h-[450px] overflow-y-auto scrollbar-thin space-y-4">
                         <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-6">Transmission Records</h4>
                         <div className="grid grid-cols-1 gap-3">
-                            {selectedJob?.records.map((rec: any, i: number) => (
+                            {selectedJob?.records.map((rec, i: number) => (
                                 <div key={i} className="flex items-center gap-5 p-5 rounded-[2rem] bg-slate-50 border border-slate-100 hover:bg-white hover:shadow-xl hover:-translate-y-1 transition-all group">
                                     <div className="h-12 w-12 rounded-2xl overflow-hidden shrink-0 shadow-md group-hover:rotate-3 transition-transform">
                                         <img src={rec.image.thumbnailPath || rec.image.filePath} className="h-full w-full object-cover" />
