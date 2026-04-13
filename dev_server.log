@@ -20,3 +20,9 @@
  GET /register 200 in 559ms
  GET /api/auth/me 401 in 80ms
  POST /api/auth/register 400 in 34ms
+ ✓ Compiled in 3s (209 modules)
+ ✓ Compiled in 441ms (209 modules)
+ ✓ Compiled in 357ms (209 modules)
+ ✓ Compiled in 227ms (209 modules)
+ ✓ Compiled in 301ms (209 modules)
+[?25h
