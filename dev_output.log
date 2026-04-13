@@ -1,0 +1,167 @@
+
+> telegram-bulk-sender@1.0.0 dev
+> next dev
+
+ ⚠ Port 3000 is in use by an unknown process, using available port 3001 instead.
+   ▲ Next.js 15.5.15
+   - Local:        http://localhost:3001
+   - Network:      http://192.168 ○ Compiling / ...
+ ✓ Compiled / in 7.1s (976 modules)
+ GET / 200 in 9284ms
+ ○ Compiling /api/init ...
+ ✓ Compiled /api/activity/recent in 2.7s (1003 modules)
+prisma:error
+Invalid `prisma.image.count()` invocation:
+
+
+The table `public.Image` does not exist in the current database.
+ GET /api/stats 500 in 5439ms
+ ○ Compiling /groups ...
+prisma:error
+Invalid `prisma.sendRecord.count()` invocation:
+
+
+The table `public.SendRecord` does not exist in the current database.
+prisma:error
+Invalid `prisma.user.findUnique()` invocation:
+
+
+The table `public.User` does not exist in the current database.
+Init error: Error [PrismaClientKnownRequestError]:
+Invalid `prisma.user.findUnique()` invocation:
+
+
+The table `public.User` does not exist in the current database.
+    at async GET (src/app/api/init/route.ts:7:16)
+   5 | export async function GET() {
+   6 |   try {
+>  7 |     let user = await prisma.user.findUnique({
+     |                ^
+   8 |       where: { id: APP_USER_ID },
+   9 |     });
+  10 | {
+  code: 'P2021',
+  clientVersion: '5.22.0',
+  meta: [Object]
+}
+ GET /api/init 500 in 7175ms
+prisma:error
+Invalid `prisma.group.count()` invocation:
+
+
+The table `public.Group` does not exist in the current database.
+prisma:error
+Invalid `prisma.sendRecord.count()` invocation:
+
+
+The table `public.SendRecord` does not exist in the current database.
+prisma:error
+Invalid `prisma.sendRecord.count()` invocation:
+
+
+The table `public.SendRecord` does not exist in the current database.
+prisma:error
+Invalid `prisma.sendRecord.findMany()` invocation:
+
+
+The table `public.SendRecord` does not exist in the current database.
+ GET /api/activity/recent 500 in 7010ms
+ ✓ Compiled /groups in 2.9s (1089 modules)
+ GET /groups 200 in 3174ms
+ ○ Compiling /api/groups ...
+ ✓ Compiled /api/groups in 744ms (1091 modules)
+prisma:error
+Invalid `prisma.group.findMany()` invocation:
+
+
+The table `public.Group` does not exist in the current database.
+ GET /api/groups 500 in 1184ms
+prisma:error
+Invalid `prisma.group.findMany()` invocation:
+
+
+The table `public.Group` does not exist in the current database.
+ GET /api/groups 500 in 250ms
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+ GET / 200 in 730ms
+prisma:error
+Invalid `prisma.user.findUnique()` invocation:
+
+
+The table `public.User` does not exist in the current database.
+Init error: Error [PrismaClientKnownRequestError]:
+Invalid `prisma.user.findUnique()` invocation:
+
+
+The table `public.User` does not exist in the current database.
+    at async GET (src/app/api/init/route.ts:7:16)
+   5 | export async function GET() {
+   6 |   try {
+>  7 |     let user = await prisma.user.findUnique({
+     |                ^
+   8 |       where: { id: APP_USER_ID },
+   9 |     });
+  10 | {
+  code: 'P2021',
+  clientVersion: '5.22.0',
+  meta: [Object]
+}
+ GET /api/init 500 in 2448ms
+prisma:error
+Invalid `prisma.sendRecord.findMany()` invocation:
+
+
+The table `public.SendRecord` does not exist in the current database.
+ GET /api/activity/recent 500 in 2351ms
+prisma:error
+Invalid `prisma.image.count()` invocation:
+
+
+The table `public.Image` does not exist in the current database.
+ GET /api/stats 500 in 2380ms
+prisma:error
+Invalid `prisma.group.count()` invocation:
+
+
+The table `public.Group` does not exist in the current database.
+prisma:error
+Invalid `prisma.sendRecord.count()` invocation:
+
+
+The table `public.SendRecord` does not exist in the current database.
+prisma:error
+Invalid `prisma.sendRecord.count()` invocation:
+
+
+The table `public.SendRecord` does not exist in the current database.
+prisma:error
+Invalid `prisma.sendRecord.count()` invocation:
+
+
+The table `public.SendRecord` does not exist in the current database.
+ GET /groups 200 in 126ms
+prisma:error
+Invalid `prisma.group.findMany()` invocation:
+
+
+The table `public.Group` does not exist in the current database.
+ GET /api/groups 500 in 308ms
+prisma:error
+Invalid `prisma.group.findMany()` invocation:
+
+
+The table `public.Group` does not exist in the current database.
+ GET /api/groups 500 in 260ms
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }
+prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }

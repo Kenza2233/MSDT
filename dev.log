@@ -76,3 +76,6 @@
  GET /api/init 200 in 31ms
  GET /api/images?take=100 200 in 42ms
  GET /api/groups 200 in 64ms
+   Reload env: .env.local
+ ✓ Compiled in 28s (1480 modules)
+[?25h
