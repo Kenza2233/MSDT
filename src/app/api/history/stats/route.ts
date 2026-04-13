@@ -1,44 +1,35 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { APP_USER_ID } from "@/lib/config";
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const session = await getSession();
-    if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    const totalSent = await prisma.sendRecord.count({
+      where: { job: { userId: APP_USER_ID }, status: "sent" },
+    });
 
-    const [totalSent, sentToday, failedRecent, totalHistory] = await Promise.all([
-      prisma.sendRecord.count({
-        where: { job: { userId: session.userId }, status: "sent" }
-      }),
-      prisma.sendRecord.count({
-        where: {
-          job: { userId: session.userId },
-          status: "sent",
-          sentAt: { gte: new Date(new Date().setHours(0,0,0,0)) }
-        }
-      }),
-      prisma.sendRecord.count({
-        where: {
-          job: { userId: session.userId },
-          status: "failed",
-          createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
-        }
-      }),
-      prisma.sendRecord.count({
-        where: { job: { userId: session.userId } }
-      })
-    ]);
+    const sentToday = await prisma.sendRecord.count({
+      where: {
+        job: { userId: APP_USER_ID },
+        status: "sent",
+        sentAt: {
+          gte: new Date(new Date().setHours(0, 0, 0, 0)),
+        },
+      },
+    });
 
-    const successRate = totalHistory > 0 ? Math.round((totalSent / totalHistory) * 100) : 100;
+    const totalRecords = await prisma.sendRecord.count({
+      where: { job: { userId: APP_USER_ID } },
+    });
+
+    const successRate = totalRecords > 0 ? (totalSent / totalRecords) * 100 : 100;
 
     return NextResponse.json({
       totalSent,
       sentToday,
-      failedRecent,
-      successRate
+      successRate: Math.round(successRate),
     });
   } catch (error) {
-    return NextResponse.json({ message: "Internal error" }, { status: 500 });
+    return NextResponse.json({ message: "Error fetching history stats" }, { status: 500 });
   }
 }

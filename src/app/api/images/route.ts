@@ -1,22 +1,20 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { APP_USER_ID } from "@/lib/config";
 
-export async function GET(request: Request) {
+export async function GET(req: Request) {
   try {
-    const session = await getSession();
-    if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-
-    const { searchParams } = new URL(request.url);
+    const { searchParams } = new URL(req.url);
     const search = searchParams.get("search") || "";
     const status = searchParams.get("status") || "all";
     const sort = searchParams.get("sort") || "newest";
-    const limit = parseInt(searchParams.get("limit") || "20");
     const page = parseInt(searchParams.get("page") || "1");
+    const take = parseInt(searchParams.get("take") || "20");
+    const skip = (page - 1) * take;
 
     const where: any = {
-      userId: session.userId,
-      filename: { contains: search, mode: 'insensitive' }
+      userId: APP_USER_ID,
+      fileName: { contains: search, mode: "insensitive" },
     };
 
     if (status !== "all") {
@@ -27,28 +25,20 @@ export async function GET(request: Request) {
     if (sort === "newest") orderBy.createdAt = "desc";
     else if (sort === "oldest") orderBy.createdAt = "asc";
     else if (sort === "largest") orderBy.fileSize = "desc";
-    else if (sort === "name") orderBy.filename = "asc";
+    else if (sort === "name") orderBy.fileName = "asc";
 
     const [images, total] = await Promise.all([
       prisma.image.findMany({
         where,
         orderBy,
-        take: limit,
-        skip: (page - 1) * limit
+        take,
+        skip,
       }),
-      prisma.image.count({ where })
+      prisma.image.count({ where }),
     ]);
 
-    return NextResponse.json({
-      images,
-      pagination: {
-        total,
-        pages: Math.ceil(total / limit),
-        page,
-        limit
-      }
-    });
+    return NextResponse.json({ images, total, page, take });
   } catch (error) {
-    return NextResponse.json({ message: "Internal error" }, { status: 500 });
+    return NextResponse.json({ message: "Error fetching images" }, { status: 500 });
   }
 }

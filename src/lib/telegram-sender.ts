@@ -3,11 +3,11 @@ import prisma from "./prisma";
 import fs from "fs";
 import path from "path";
 
-export async function processSendJob(jobId: string) {
+export async function processSendJob(jobId: number) {
   const job = await prisma.sendJob.findUnique({
     where: { id: jobId },
     include: {
-      sendRecords: {
+      records: {
         include: {
           image: true,
           group: true,
@@ -18,7 +18,7 @@ export async function processSendJob(jobId: string) {
   });
 
   if (!job || !job.user.botToken) {
-    console.error(`Job ${jobId} or bot token not found.`);
+    console.error(`Job ${jobId} not found or bot token missing`);
     return;
   }
 
@@ -29,123 +29,149 @@ export async function processSendJob(jobId: string) {
 
   const bot = new TelegramBot(job.user.botToken, { polling: false });
 
-  if (job.sendAsAlbum) {
-    // Logic for sending as album (MediaGroup)
-    // Group records by group
-    const recordsByGroup = job.sendRecords.reduce((acc: any, record) => {
-      if (!acc[record.groupId]) acc[record.groupId] = [];
-      acc[record.groupId].push(record);
-      return acc;
-    }, {});
+  try {
+    const records = job.records;
 
-    for (const groupId in recordsByGroup) {
-      const currentJob = await prisma.sendJob.findUnique({ where: { id: jobId } });
-      if (currentJob?.status === "cancelled") break;
+    if (job.sendAsAlbum) {
+      const groupedByGroup = records.reduce((acc: any, record) => {
+        if (!acc[record.groupId]) acc[record.groupId] = [];
+        acc[record.groupId].push(record);
+        return acc;
+      }, {});
 
-      const groupRecords = recordsByGroup[groupId];
-      const group = groupRecords[0].group;
+      for (const groupIdStr in groupedByGroup) {
+        const groupId = parseInt(groupIdStr);
+        const groupRecords = groupedByGroup[groupId];
+        const group = groupRecords[0].group;
 
-      // Split into batches of 10
-      for (let i = 0; i < groupRecords.length; i += 10) {
-        const batch = groupRecords.slice(i, i + 10);
-        const media: any[] = batch.map((r: any) => ({
-          type: "photo",
-          media: fs.createReadStream(path.join(process.cwd(), "public", r.image.filePath)),
-          caption: r.image.caption || undefined,
-        }));
+        const currentJob = await prisma.sendJob.findUnique({ where: { id: jobId } });
+        if (currentJob?.status === "cancelled") break;
 
-        try {
-          await bot.sendMediaGroup(group.chatId, media);
-          await prisma.sendRecord.updateMany({
-            where: { id: { in: batch.map((r: any) => r.id) } },
-            data: { status: "sent", sentAt: new Date() },
+        const batchSize = Math.min(job.albumSize, 10);
+        for (let i = 0; i < groupRecords.length; i += batchSize) {
+          const batch = groupRecords.slice(i, i + batchSize);
+
+          const media: any[] = batch.map((r: any, index: number) => {
+            const filePath = path.join(process.cwd(), "public", r.image.filePath);
+            let itemCaption = undefined;
+            if (index === 0) {
+              itemCaption = job.caption || r.image.caption || undefined;
+            }
+
+            return {
+              type: "photo",
+              media: fs.createReadStream(filePath),
+              caption: itemCaption,
+              parse_mode: 'HTML'
+            };
           });
-          await prisma.sendJob.update({
-            where: { id: jobId },
-            data: { completedSends: { increment: batch.length } },
-          });
-        } catch (error: any) {
-          await prisma.sendRecord.updateMany({
-            where: { id: { in: batch.map((r: any) => r.id) } },
-            data: { status: "failed", errorMessage: error.message },
-          });
-          await prisma.sendJob.update({
-            where: { id: jobId },
-            data: { failedSends: { increment: batch.length } },
-          });
-        }
-        await new Promise((resolve) => setTimeout(resolve, job.delayMs));
-      }
-    }
-  } else {
-    // One by one
-    for (const record of job.sendRecords) {
-      const currentJob = await prisma.sendJob.findUnique({ where: { id: jobId } });
-      if (currentJob?.status === "cancelled") break;
 
-      try {
-        const sentMsg = await bot.sendPhoto(
-          record.group.chatId,
-          fs.createReadStream(path.join(process.cwd(), "public", record.image.filePath)),
-          { caption: record.image.caption || undefined }
-        );
-
-        await prisma.sendRecord.update({
-          where: { id: record.id },
-          data: { status: "sent", sentAt: new Date(), telegramMsgId: sentMsg.message_id },
-        });
-        await prisma.sendJob.update({
-          where: { id: jobId },
-          data: { completedSends: { increment: 1 } },
-        });
-      } catch (error: any) {
-        let success = false;
-        let errorMessage = error.message;
-
-        // Simple retry logic
-        for (let attempt = 1; attempt <= 3; attempt++) {
-          await new Promise((resolve) => setTimeout(resolve, Math.pow(2, attempt) * 1000));
           try {
-             const sentMsg = await bot.sendPhoto(
-              record.group.chatId,
-              fs.createReadStream(path.join(process.cwd(), "public", record.image.filePath)),
-              { caption: record.image.caption || undefined }
-            );
+            await bot.sendMediaGroup(group.chatId, media);
+
+            await prisma.sendRecord.updateMany({
+              where: { id: { in: batch.map((r: any) => r.id) } },
+              data: { status: "sent", sentAt: new Date() },
+            });
+
+            await prisma.sendJob.update({
+              where: { id: jobId },
+              data: { completedSends: { increment: batch.length } },
+            });
+
+          } catch (err: any) {
+            console.error("Album send error:", err);
+            await prisma.sendRecord.updateMany({
+              where: { id: { in: batch.map((r: any) => r.id) } },
+              data: { status: "failed", errorMessage: err.message },
+            });
+            await prisma.sendJob.update({
+              where: { id: jobId },
+              data: { failedSends: { increment: batch.length } },
+            });
+          }
+
+          if (i + batchSize < groupRecords.length) {
+            await new Promise(resolve => setTimeout(resolve, job.delayMs));
+          }
+        }
+
+        await new Promise(resolve => setTimeout(resolve, job.delayMs));
+      }
+    } else {
+      for (const record of records) {
+        const currentJob = await prisma.sendJob.findUnique({ where: { id: jobId } });
+        if (currentJob?.status === "cancelled") break;
+
+        let attempt = 0;
+        let success = false;
+        let lastError = "";
+
+        while (attempt < 3 && !success) {
+          try {
+            const filePath = path.join(process.cwd(), "public", record.image.filePath);
+            const stream = fs.createReadStream(filePath);
+            const finalCaption = job.caption || record.image.caption || undefined;
+
+            const result = await bot.sendPhoto(record.group.chatId, stream, {
+              caption: finalCaption,
+              parse_mode: 'HTML'
+            });
+
             await prisma.sendRecord.update({
               where: { id: record.id },
-              data: { status: "sent", sentAt: new Date(), telegramMsgId: sentMsg.message_id, retryCount: attempt },
+              data: { status: "sent", sentAt: new Date(), telegramMsgId: result.message_id.toString() },
             });
+
             await prisma.sendJob.update({
               where: { id: jobId },
               data: { completedSends: { increment: 1 } },
             });
+
             success = true;
-            break;
-          } catch (retryError: any) {
-            errorMessage = retryError.message;
+          } catch (err: any) {
+            attempt++;
+            lastError = err.message;
+            if (err.response?.status === 429) {
+                const retryAfter = (err.response?.body?.parameters?.retry_after || 5) * 1000;
+                await new Promise(resolve => setTimeout(resolve, retryAfter));
+            } else {
+                await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+            }
           }
         }
 
         if (!success) {
           await prisma.sendRecord.update({
             where: { id: record.id },
-            data: { status: "failed", errorMessage },
+            data: { status: "failed", errorMessage: lastError, retryCount: attempt },
           });
           await prisma.sendJob.update({
             where: { id: jobId },
             data: { failedSends: { increment: 1 } },
           });
         }
-      }
-      await new Promise((resolve) => setTimeout(resolve, job.delayMs));
-    }
-  }
 
-  const finalJob = await prisma.sendJob.findUnique({ where: { id: jobId } });
-  if (finalJob?.status !== "cancelled") {
+        await new Promise(resolve => setTimeout(resolve, job.delayMs));
+      }
+    }
+
+    const finalJob = await prisma.sendJob.findUnique({ where: { id: jobId } });
+    if (finalJob?.status !== "cancelled") {
+      await prisma.sendJob.update({
+        where: { id: jobId },
+        data: {
+            status: finalJob?.failedSends === job.totalSends ? "failed" : "completed",
+            completedAt: new Date()
+        },
+      });
+    }
+
+  } catch (globalErr) {
+    console.error("Global job error:", globalErr);
     await prisma.sendJob.update({
       where: { id: jobId },
-      data: { status: "completed", completedAt: new Date() },
+      data: { status: "failed", completedAt: new Date() },
     });
   }
 }

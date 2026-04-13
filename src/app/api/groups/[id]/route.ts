@@ -1,58 +1,29 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { APP_USER_ID } from "@/lib/config";
 
-export async function PATCH(
-  request: Request,
-  props: { params: Promise<{ id: string }> }
-) {
+export async function PUT(req: Request, props: { params: Promise<{ id: string }> }) {
   try {
-    const session = await getSession();
-    if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-
     const params = await props.params;
-    const group = await prisma.group.findUnique({
-      where: { id: params.id },
+    const { title, chatId, type } = await req.json();
+    const group = await prisma.group.update({
+      where: { id: parseInt(params.id), userId: APP_USER_ID },
+      data: { title, chatId: chatId.toString(), type },
     });
-
-    if (!group || group.userId !== session.userId) {
-      return NextResponse.json({ message: "Group not found" }, { status: 404 });
-    }
-
-    const updatedGroup = await prisma.group.update({
-      where: { id: params.id },
-      data: { isActive: !group.isActive },
-    });
-
-    return NextResponse.json({ group: updatedGroup });
+    return NextResponse.json(group);
   } catch (error) {
-    return NextResponse.json({ message: "Internal error" }, { status: 500 });
+    return NextResponse.json({ message: "Error updating group" }, { status: 500 });
   }
 }
 
-export async function DELETE(
-  request: Request,
-  props: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(req: Request, props: { params: Promise<{ id: string }> }) {
   try {
-    const session = await getSession();
-    if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-
     const params = await props.params;
-    const group = await prisma.group.findUnique({
-      where: { id: params.id },
-    });
-
-    if (!group || group.userId !== session.userId) {
-      return NextResponse.json({ message: "Group not found" }, { status: 404 });
-    }
-
     await prisma.group.delete({
-      where: { id: params.id },
+      where: { id: parseInt(params.id), userId: APP_USER_ID },
     });
-
     return NextResponse.json({ message: "Group deleted" });
   } catch (error) {
-    return NextResponse.json({ message: "Internal error" }, { status: 500 });
+    return NextResponse.json({ message: "Error deleting group" }, { status: 500 });
   }
 }

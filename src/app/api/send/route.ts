@@ -1,16 +1,13 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { APP_USER_ID } from "@/lib/config";
 import { processSendJob } from "@/lib/telegram-sender";
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
-    const session = await getSession();
-    if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    const { imageIds, groupIds, sendAsAlbum, albumSize, delayMs, caption } = await req.json();
 
-    const { imageIds, groupIds, caption, delayMs, sendAsAlbum } = await request.json();
-
-    if (!imageIds || imageIds.length === 0 || !groupIds || groupIds.length === 0) {
+    if (!imageIds?.length || !groupIds?.length) {
       return NextResponse.json({ message: "Images and Groups are required" }, { status: 400 });
     }
 
@@ -18,19 +15,20 @@ export async function POST(request: Request) {
 
     const job = await prisma.sendJob.create({
       data: {
-        userId: session.userId,
+        userId: APP_USER_ID,
         totalSends,
-        caption,
-        delayMs: delayMs || 3000,
-        sendAsAlbum: sendAsAlbum ?? true,
+        sendAsAlbum: !!sendAsAlbum,
+        albumSize: albumSize || 10,
+        delayMs: delayMs || 1000,
+        caption: caption || null,
         status: "pending",
       },
     });
 
-    const recordsData = [];
+    const records = [];
     for (const imageId of imageIds) {
       for (const groupId of groupIds) {
-        recordsData.push({
+        records.push({
           jobId: job.id,
           imageId,
           groupId,
@@ -39,16 +37,14 @@ export async function POST(request: Request) {
       }
     }
 
-    await prisma.sendRecord.createMany({
-      data: recordsData,
-    });
+    await prisma.sendRecord.createMany({ data: records });
 
-    // Start background process
+    // Trigger background process
     processSendJob(job.id);
 
-    return NextResponse.json({ jobId: job.id, totalSends });
+    return NextResponse.json(job);
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ message: "Internal error" }, { status: 500 });
+    console.error("Send error:", error);
+    return NextResponse.json({ message: "Error starting send job" }, { status: 500 });
   }
 }

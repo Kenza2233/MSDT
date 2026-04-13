@@ -1,32 +1,32 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuth } from "@/context/AuthContext";
+import Link from "next/link";
 import {
-  ImageIcon,
+  Image as ImageIcon,
   Users,
   Send,
-  TrendingUp,
-  Plus,
+  CheckCircle2,
+  Upload,
   ArrowRight,
-  ExternalLink,
-  History,
-  Settings
+  Sparkles,
+  TrendingUp,
+  History
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
-import Link from "next/link";
-import { format } from "date-fns";
+import { cn, formatDate, timeAgo } from "@/lib/utils";
 
 export const dynamic = 'force-dynamic';
 
 export default function DashboardPage() {
-  const { user } = useAuth();
-  const [stats, setStats] = useState<any>(null);
-  const [recentJobs, setRecentJobs] = useState<any[]>([]);
+  const [stats, setStats] = useState({
+    totalImages: 0,
+    totalGroups: 0,
+    sentToday: 0,
+    successRate: 100,
+  });
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,12 +37,9 @@ export default function DashboardPage() {
           fetch("/api/activity/recent")
         ]);
         if (statsRes.ok) setStats(await statsRes.json());
-        if (activityRes.ok) {
-          const data = await activityRes.json();
-          setRecentJobs(data.recentJobs);
-        }
+        if (activityRes.ok) setRecentActivity(await activityRes.json());
       } catch (err) {
-        console.error(err);
+        console.error("Dashboard error:", err);
       } finally {
         setLoading(false);
       }
@@ -51,172 +48,177 @@ export default function DashboardPage() {
   }, []);
 
   const statCards = [
-    { title: "Total Images", value: stats?.totalImages || 0, icon: ImageIcon, color: "text-indigo-600", bg: "bg-indigo-100" },
-    { title: "Active Groups", value: stats?.activeGroups || 0, icon: Users, color: "text-emerald-600", bg: "bg-emerald-100" },
-    { title: "Sent Today", value: stats?.sentToday || 0, icon: Send, color: "text-violet-600", bg: "bg-violet-100" },
-    { title: "Total Sends", value: stats?.totalSends || 0, icon: TrendingUp, color: "text-amber-600", bg: "bg-amber-100" },
+    { title: "Total Images", value: stats.totalImages, icon: ImageIcon, color: "text-blue-600", bg: "bg-blue-100", gradient: "from-blue-600 to-indigo-600" },
+    { title: "Active Groups", value: stats.totalGroups, icon: Users, color: "text-emerald-600", bg: "bg-emerald-100", gradient: "from-emerald-600 to-teal-600" },
+    { title: "Sent Today", value: stats.sentToday, icon: Send, color: "text-violet-600", bg: "bg-violet-100", gradient: "from-violet-600 to-purple-600" },
+    { title: "Success Rate", value: `${stats.successRate}%`, icon: TrendingUp, color: "text-amber-600", bg: "bg-amber-100", gradient: "from-amber-600 to-orange-600" },
   ];
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-3xl font-bold text-slate-900 tracking-tight">
-            Welcome back, {user?.name?.split(' ')[0] || "User"}!
-          </h2>
-          <p className="text-slate-500 font-medium">
-            {format(new Date(), "EEEE, MMMM do yyyy")}
+    <div className="space-y-10">
+      {/* Welcome Banner */}
+      <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-700 rounded-3xl p-8 lg:p-12 text-white shadow-2xl animate-scale-in">
+        <div className="relative z-10 max-w-2xl space-y-4">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/10 backdrop-blur-md rounded-full border border-white/20 text-sm font-bold animate-float">
+            <Sparkles className="h-4 w-4 text-amber-400" />
+            Empower your Telegram marketing
+          </div>
+          <h1 className="text-4xl lg:text-5xl font-black tracking-tight leading-tight">
+            Welcome to <span className="italic">BulkSender!</span>
+          </h1>
+          <p className="text-blue-100 text-lg font-medium leading-relaxed max-w-xl">
+            Effortlessly broadcast high-quality images to all your Telegram groups and channels with precision and speed.
           </p>
+          <div className="flex flex-wrap gap-4 pt-4">
+            <Button asChild className="bg-white text-blue-600 hover:bg-blue-50 font-bold h-12 px-8 rounded-xl shadow-lg transition-all hover:scale-105 active:scale-95">
+              <Link href="/send" className="gap-2">Start Campaign <ArrowRight className="h-4 w-4" /></Link>
+            </Button>
+            <Button asChild variant="outline" className="bg-transparent border-white/30 text-white hover:bg-white/10 font-bold h-12 px-8 rounded-xl backdrop-blur-sm">
+              <Link href="/upload" className="gap-2">Upload Media</Link>
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-3">
-          <Button asChild className="rounded-xl shadow-lg shadow-indigo-500/20 bg-indigo-600 hover:bg-indigo-700">
-            <Link href="/send" className="gap-2">
-              <Send className="h-4 w-4" /> Start Sending
-            </Link>
-          </Button>
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl" />
+        <div className="hidden lg:block absolute right-12 top-1/2 -translate-y-1/2 animate-float">
+            <div className="bg-white/10 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/20 rotate-6 shadow-2xl">
+                <Send className="h-24 w-24 text-white opacity-40" />
+            </div>
         </div>
       </div>
 
+      {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((stat, i) => (
-          <motion.div
-            key={stat.title}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
-          >
-            <Card className="border-none shadow-sm hover:shadow-md transition-all duration-300 rounded-2xl overflow-hidden group">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`p-3 rounded-2xl ${stat.bg} ${stat.color} transition-transform group-hover:scale-110 duration-300`}>
-                    <stat.icon className="h-6 w-6" />
-                  </div>
+          <Card key={i} className="group hover-lift animate-fade-in-up" style={{ animationDelay: `${i * 100}ms` }}>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className={cn("p-4 rounded-2xl transition-all duration-300 group-hover:scale-110", stat.bg, stat.color)}>
+                  <stat.icon className="h-8 w-8" />
                 </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-500 mb-1 uppercase tracking-wider">{stat.title}</p>
-                  <h3 className="text-3xl font-bold text-slate-800">{stat.value}</h3>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">{stat.title}</p>
+                  <h3 className="text-3xl font-black text-slate-800 mt-1">{loading ? "..." : stat.value}</h3>
                 </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+              </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <Card className="lg:col-span-2 border-none shadow-sm rounded-2xl overflow-hidden">
-          <CardHeader className="border-b border-slate-50 bg-white/50 backdrop-blur-sm px-6 py-4 flex flex-row items-center justify-between">
-            <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2">
-              <History className="h-5 w-5 text-indigo-600" /> Recent Activity
-            </CardTitle>
-            <Button variant="ghost" size="sm" asChild className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg">
-              <Link href="/history" className="gap-1 text-xs font-bold uppercase tracking-wider">
-                View All <ArrowRight className="h-3 w-3" />
-              </Link>
+        {/* Recent Activity */}
+        <Card className="lg:col-span-2 overflow-hidden animate-fade-in-up" style={{ animationDelay: "400ms" }}>
+          <CardHeader className="bg-white border-b border-slate-100 flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-xl font-black text-slate-800 flex items-center gap-2">
+                <History className="h-5 w-5 text-indigo-600" /> Recent Activity
+              </CardTitle>
+              <p className="text-sm text-slate-500 font-medium">Your latest message broadcasts</p>
+            </div>
+            <Button variant="ghost" asChild className="text-indigo-600 font-bold hover:bg-indigo-50">
+              <Link href="/history">View All</Link>
             </Button>
           </CardHeader>
           <CardContent className="p-0">
             {loading ? (
-              <div className="p-8 text-center text-slate-400 italic">Loading activity...</div>
-            ) : recentJobs.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50/50 text-slate-400 text-[10px] font-bold uppercase tracking-widest">
-                      <th className="px-6 py-3">Job ID</th>
-                      <th className="px-6 py-3">Status</th>
-                      <th className="px-6 py-3">Progress</th>
-                      <th className="px-6 py-3 text-right">Created At</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {recentJobs.map((job) => (
-                      <tr key={job.id} className="hover:bg-slate-50/50 transition-colors group">
-                        <td className="px-6 py-4">
-                          <span className="text-sm font-bold text-slate-700">#JOB-{job.id}</span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <Badge
-                            className={cn(
-                              "rounded-lg px-2.5 py-0.5 text-[10px] font-bold uppercase border-none",
-                              job.status === "completed" ? "bg-emerald-100 text-emerald-700" :
-                              job.status === "processing" ? "bg-indigo-100 text-indigo-700 animate-pulse" :
-                              job.status === "failed" ? "bg-rose-100 text-rose-700" :
-                              "bg-slate-100 text-slate-600"
-                            )}
-                          >
-                            {job.status}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden max-w-[100px]">
-                              <div
-                                className="h-full bg-indigo-500 rounded-full"
-                                style={{ width: `${(job.completedSends / (job.totalSends || 1)) * 100}%` }}
-                              />
-                            </div>
-                            <span className="text-[10px] font-bold text-slate-500">{job.completedSends}/{job.totalSends}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <span className="text-xs text-slate-400 font-medium">
-                            {format(new Date(job.createdAt), "MMM d, HH:mm")}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="py-20 flex flex-col items-center justify-center text-center px-6">
-                <div className="h-16 w-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-                  <History className="h-8 w-8 text-slate-300" />
+                <div className="p-8 text-center text-slate-400 font-bold">Loading activity...</div>
+            ) : recentActivity.length === 0 ? (
+                <div className="p-16 flex flex-col items-center text-center">
+                    <div className="bg-slate-100 p-6 rounded-full mb-4">
+                        <History className="h-10 w-10 text-slate-300" />
+                    </div>
+                    <h4 className="text-lg font-bold text-slate-700">No activity yet</h4>
+                    <p className="text-slate-500">Your sending history will appear here once you start a campaign.</p>
                 </div>
-                <h4 className="text-slate-800 font-bold mb-1">No activity yet</h4>
-                <p className="text-sm text-slate-500 max-w-xs">Start your first campaign to see the history and logs here.</p>
-              </div>
+            ) : (
+                <div className="divide-y divide-slate-50 overflow-x-auto">
+                    <table className="w-full">
+                        <thead>
+                            <tr className="bg-slate-50/50 text-[10px] uppercase tracking-widest text-slate-400 font-black">
+                                <th className="px-6 py-4 text-left">Media</th>
+                                <th className="px-6 py-4 text-left">Target Group</th>
+                                <th className="px-6 py-4 text-left">Status</th>
+                                <th className="px-6 py-4 text-right">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                            {recentActivity.map((rec, i) => (
+                                <tr key={i} className="hover:bg-slate-50/50 transition-colors group">
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-10 w-10 rounded-lg overflow-hidden border border-slate-200">
+                                                <img src={rec.image.thumbnailPath || rec.image.filePath} className="h-full w-full object-cover" />
+                                            </div>
+                                            <span className="text-sm font-bold text-slate-700 truncate max-w-[150px]">{rec.image.fileName}</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className="text-sm font-bold text-slate-600">{rec.group.title}</span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className={cn(
+                                            "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider",
+                                            rec.status === 'sent' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                                        )}>
+                                            <div className={cn("h-1.5 w-1.5 rounded-full", rec.status === 'sent' ? 'bg-emerald-500' : 'bg-rose-500')} />
+                                            {rec.status}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-right">
+                                        <span className="text-xs font-bold text-slate-400">{timeAgo(rec.createdAt)}</span>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             )}
           </CardContent>
         </Card>
 
+        {/* Quick Actions */}
         <div className="space-y-6">
-          <Card className="border-none shadow-sm rounded-2xl overflow-hidden bg-gradient-to-br from-indigo-600 to-violet-700 text-white">
-            <CardContent className="p-6">
-              <h4 className="text-lg font-bold mb-2">Need help?</h4>
-              <p className="text-indigo-100 text-sm mb-6 leading-relaxed">
-                Connect your bot and start adding groups to begin bulk sending images effortlessly.
-              </p>
-              <Button variant="secondary" size="sm" asChild className="bg-white/10 hover:bg-white/20 border-none text-white rounded-xl shadow-none backdrop-blur-sm w-full transition-all group">
-                <Link href="/setup" className="gap-2">
-                  Setup Guide <ExternalLink className="h-3 w-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
+            <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest px-2">Quick Shortcuts</h3>
+            <div className="grid grid-cols-1 gap-4">
+                {[
+                    { label: "Upload Images", icon: Upload, href: "/upload", color: "from-blue-500 to-indigo-600" },
+                    { label: "Start Sending", icon: Send, href: "/send", color: "from-violet-500 to-purple-600" },
+                    { label: "View Gallery", icon: ImageIcon, href: "/gallery", color: "from-emerald-500 to-teal-600" }
+                ].map((action, i) => (
+                    <Button key={i} asChild variant="ghost" className="p-0 h-auto w-full animate-fade-in-up hover:bg-transparent" style={{ animationDelay: `${500 + i * 100}ms` }}>
+                        <Link href={action.href}>
+                            <Card className="w-full border-0 shadow-md hover-lift overflow-hidden">
+                                <CardContent className="p-5 flex items-center gap-4">
+                                    <div className={cn("p-3 rounded-xl text-white shadow-lg", "bg-gradient-to-br", action.color)}>
+                                        <action.icon className="h-6 w-6" />
+                                    </div>
+                                    <div className="flex-1 text-left">
+                                        <h4 className="font-black text-slate-800 tracking-tight">{action.label}</h4>
+                                        <p className="text-xs text-slate-500 font-medium">One-click access</p>
+                                    </div>
+                                    <ArrowRight className="h-5 w-5 text-slate-300" />
+                                </CardContent>
+                            </Card>
+                        </Link>
+                    </Button>
+                ))}
+            </div>
 
-          <Card className="border-none shadow-sm rounded-2xl overflow-hidden">
-            <CardHeader className="px-6 py-4 border-b border-slate-50">
-              <CardTitle className="text-sm font-bold text-slate-800 uppercase tracking-widest">Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 space-y-2">
-              <Button variant="ghost" asChild className="w-full justify-start gap-3 h-12 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all font-semibold">
-                <Link href="/upload">
-                  <Plus className="h-4 w-4" /> Upload Images
-                </Link>
-              </Button>
-              <Button variant="ghost" asChild className="w-full justify-start gap-3 h-12 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all font-semibold">
-                <Link href="/groups">
-                  <Users className="h-4 w-4" /> Manage Groups
-                </Link>
-              </Button>
-              <Button variant="ghost" asChild className="w-full justify-start gap-3 h-12 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all font-semibold">
-                <Link href="/settings">
-                  <Settings className="h-4 w-4" /> Account Settings
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
+            <Card className="bg-slate-900 border-0 shadow-2xl text-white overflow-hidden animate-fade-in-up" style={{ animationDelay: "800ms" }}>
+                <CardContent className="p-8 space-y-4">
+                    <div className="h-12 w-12 bg-white/10 rounded-2xl flex items-center justify-center border border-white/10 mb-2">
+                        <Sparkles className="h-6 w-6 text-amber-400" />
+                    </div>
+                    <h4 className="text-lg font-black tracking-tight">Need Help?</h4>
+                    <p className="text-sm text-slate-400 leading-relaxed font-medium">
+                        Go to Settings to configure your Telegram Bot Token and ID. Make sure your bot is an Admin in the target groups.
+                    </p>
+                    <Button asChild className="w-full bg-white text-slate-900 hover:bg-blue-50 font-black h-12 rounded-xl">
+                        <Link href="/settings">Configure Bot</Link>
+                    </Button>
+                </CardContent>
+            </Card>
         </div>
       </div>
     </div>

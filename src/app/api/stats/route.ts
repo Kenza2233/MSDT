@@ -1,38 +1,33 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { startOfDay } from "date-fns";
+import { APP_USER_ID } from "@/lib/config";
 
 export async function GET() {
   try {
-    const session = await getSession();
-    if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-
-    const [totalImages, activeGroups, sentToday, totalSends] = await Promise.all([
-      prisma.image.count({ where: { userId: session.userId } }),
-      prisma.group.count({ where: { userId: session.userId, isActive: true } }),
+    const [totalImages, totalGroups, sentTodayCount, totalSentCount, totalFailedCount] = await Promise.all([
+      prisma.image.count({ where: { userId: APP_USER_ID } }),
+      prisma.group.count({ where: { userId: APP_USER_ID, isActive: true } }),
       prisma.sendRecord.count({
         where: {
-          job: { userId: session.userId },
+          job: { userId: APP_USER_ID },
           status: "sent",
-          sentAt: { gte: startOfDay(new Date()) }
-        }
+          sentAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+        },
       }),
-      prisma.sendRecord.count({
-        where: {
-          job: { userId: session.userId },
-          status: "sent"
-        }
-      }),
+      prisma.sendRecord.count({ where: { job: { userId: APP_USER_ID }, status: "sent" } }),
+      prisma.sendRecord.count({ where: { job: { userId: APP_USER_ID }, status: "failed" } }),
     ]);
+
+    const totalAttempts = totalSentCount + totalFailedCount;
+    const successRate = totalAttempts > 0 ? (totalSentCount / totalAttempts) * 100 : 100;
 
     return NextResponse.json({
       totalImages,
-      activeGroups,
-      sentToday,
-      totalSends,
+      totalGroups,
+      sentToday: sentTodayCount,
+      successRate: Math.round(successRate),
     });
   } catch (error) {
-    return NextResponse.json({ message: "Internal error" }, { status: 500 });
+    return NextResponse.json({ message: "Error fetching stats" }, { status: 500 });
   }
 }

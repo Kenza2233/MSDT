@@ -1,20 +1,21 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { APP_USER_ID } from "@/lib/config";
 
 export async function GET() {
   try {
-    const session = await getSession();
-    if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-
-    const recentJobs = await prisma.sendJob.findMany({
-      where: { userId: session.userId },
+    const recentRecords = await prisma.sendRecord.findMany({
+      where: { job: { userId: APP_USER_ID } },
+      include: {
+        image: true,
+        group: true,
+      },
       orderBy: { createdAt: "desc" },
       take: 10,
     });
 
-    return NextResponse.json({ recentJobs });
+    return NextResponse.json(recentRecords);
   } catch (error) {
-    return NextResponse.json({ message: "Internal error" }, { status: 500 });
+    return NextResponse.json({ message: "Error fetching recent activity" }, { status: 500 });
   }
 }

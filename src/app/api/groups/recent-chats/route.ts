@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { APP_USER_ID } from "@/lib/config";
 import TelegramBot from "node-telegram-bot-api";
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const session = await getSession();
-    if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    const user = await prisma.user.findUnique({ where: { id: APP_USER_ID } });
 
-    const user = await prisma.user.findUnique({ where: { id: session.userId } });
     if (!user?.botToken) {
       return NextResponse.json({ message: "Bot token not configured" }, { status: 400 });
     }

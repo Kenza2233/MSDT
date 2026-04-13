@@ -1,45 +1,32 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { APP_USER_ID } from "@/lib/config";
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const session = await getSession();
-    if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-
     const groups = await prisma.group.findMany({
-      where: { userId: session.userId },
+      where: { userId: APP_USER_ID },
       orderBy: { createdAt: "desc" },
     });
-
-    return NextResponse.json({ groups });
+    return NextResponse.json(groups);
   } catch (error) {
-    return NextResponse.json({ message: "Internal error" }, { status: 500 });
+    return NextResponse.json({ message: "Error fetching groups" }, { status: 500 });
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
-    const session = await getSession();
-    if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-
-    const { name, chatId, type } = await request.json();
-
-    if (!name || !chatId) {
-      return NextResponse.json({ message: "Name and Chat ID are required" }, { status: 400 });
-    }
-
+    const { title, chatId, type } = await req.json();
     const group = await prisma.group.create({
       data: {
-        userId: session.userId,
-        name,
+        userId: APP_USER_ID,
+        title,
         chatId: chatId.toString(),
         type: type || "group",
       },
     });
-
-    return NextResponse.json({ group });
+    return NextResponse.json(group);
   } catch (error) {
-    return NextResponse.json({ message: "Internal error" }, { status: 500 });
+    return NextResponse.json({ message: "Error creating group" }, { status: 500 });
   }
 }

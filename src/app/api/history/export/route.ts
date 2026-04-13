@@ -1,14 +1,11 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { APP_USER_ID } from "@/lib/config";
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
-    const session = await getSession();
-    if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-
     const records = await prisma.sendRecord.findMany({
-      where: { job: { userId: session.userId } },
+      where: { job: { userId: APP_USER_ID } },
       include: {
         image: true,
         group: true,
@@ -16,29 +13,29 @@ export async function GET(request: Request) {
       orderBy: { createdAt: "desc" },
     });
 
-    const headers = ["Date", "Image", "Group", "Type", "Status", "Error", "TelegramMsgId"];
-    const rows = records.map(r => [
-      new Date(r.createdAt).toISOString(),
-      r.image.originalName,
-      r.group.name,
+    const headers = ["Date", "Image", "Group", "Type", "Status", "TelegramMsgId", "Error"];
+    const rows = records.map((r) => [
+      r.createdAt.toISOString(),
+      r.image.fileName,
+      r.group.title,
       r.group.type,
       r.status,
+      r.telegramMsgId || "",
       r.errorMessage || "",
-      r.telegramMsgId || ""
     ]);
 
     const csvContent = [
       headers.join(","),
-      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      ...rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")),
     ].join("\n");
 
     return new NextResponse(csvContent, {
       headers: {
         "Content-Type": "text/csv",
-        "Content-Disposition": "attachment; filename=send-history.csv"
-      }
+        "Content-Disposition": "attachment; filename=history.csv",
+      },
     });
   } catch (error) {
-    return NextResponse.json({ message: "Internal error" }, { status: 500 });
+    return NextResponse.json({ message: "Error exporting history" }, { status: 500 });
   }
 }

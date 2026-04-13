@@ -1,17 +1,13 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import bcrypt from "bcryptjs";
+import { APP_USER_ID } from "@/lib/config";
 
 export async function PUT(request: Request) {
   try {
-    const session = await getSession();
-    if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-
     const { name, email, botToken } = await request.json();
 
     const updatedUser = await prisma.user.update({
-      where: { id: session.userId },
+      where: { id: APP_USER_ID },
       data: {
         name,
         email,
@@ -27,20 +23,16 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const session = await getSession();
-    if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-
     const { type } = await request.json();
 
     if (type === "history") {
-      await prisma.sendRecord.deleteMany({ where: { job: { userId: session.userId } } });
-      await prisma.sendJob.deleteMany({ where: { userId: session.userId } });
+      await prisma.sendRecord.deleteMany({ where: { job: { userId: APP_USER_ID } } });
+      await prisma.sendJob.deleteMany({ where: { userId: APP_USER_ID } });
       return NextResponse.json({ message: "History cleared" });
     }
 
     if (type === "images") {
-      await prisma.sendRecord.deleteMany({ where: { image: { userId: session.userId } } });
-      await prisma.image.deleteMany({ where: { userId: session.userId } });
+      await prisma.image.deleteMany({ where: { userId: APP_USER_ID } });
       return NextResponse.json({ message: "Images cleared" });
     }
 

@@ -1,29 +1,26 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { APP_USER_ID } from "@/lib/config";
 
-export async function POST(
-  request: Request,
-  props: { params: Promise<{ jobId: string }> }
-) {
+export async function POST(req: Request, props: { params: Promise<{ jobId: string }> }) {
   try {
-    const session = await getSession();
-    if (!session) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    const params = await props.params;
+    const job = await prisma.sendJob.findUnique({
+      where: { id: parseInt(params.jobId), userId: APP_USER_ID },
+    });
 
-    const { jobId } = await props.params;
-
-    const job = await prisma.sendJob.findUnique({ where: { id: jobId } });
-    if (!job || job.userId !== session.userId) {
-      return NextResponse.json({ message: "Job not found" }, { status: 404 });
+    if (!job) return NextResponse.json({ message: "Job not found" }, { status: 404 });
+    if (job.status === "completed" || job.status === "failed") {
+      return NextResponse.json({ message: "Job already finished" }, { status: 400 });
     }
 
     await prisma.sendJob.update({
-      where: { id: jobId },
-      data: { status: "cancelled" }
+      where: { id: job.id },
+      data: { status: "cancelled" },
     });
 
-    return NextResponse.json({ message: "Job cancelled" });
+    return NextResponse.json({ message: "Job cancellation requested" });
   } catch (error) {
-    return NextResponse.json({ message: "Internal error" }, { status: 500 });
+    return NextResponse.json({ message: "Error cancelling job" }, { status: 500 });
   }
 }

@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { format, formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -14,10 +14,10 @@ export function formatFileSize(bytes: number) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 }
 
-export function formatDate(date: Date | string) {
-  return format(new Date(date), "PPP p");
+export function formatDate(date: string | Date) {
+  return format(new Date(date), "MMM d, yyyy HH:mm");
 }
 
-export function timeAgo(date: Date | string) {
+export function timeAgo(date: string | Date) {
   return formatDistanceToNow(new Date(date), { addSuffix: true });
 }
